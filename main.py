@@ -3,26 +3,51 @@ from googletrans import Translator
 import requests
 import os
 
-def send_wechat_debug(content):
+# 1. 配置期刊 RSS 列表 (已更新为稳定版链接)
+RSS_FEEDS = [
+    "https://ieeexplore.ieee.org/rss/TOC22.xml",   # T-MTT
+    "https://ieeexplore.ieee.org/rss/TOC8.xml",    # T-AP
+    "https://ieeexplore.ieee.org/rss/TOC7260.xml"  # MWTL
+]
+
+def translate_text(text):
+    try:
+        translator = Translator()
+        # 尝试翻译标题
+        return translator.translate(text, dest='zh-cn').text
+    except:
+        return text # 翻译失败则返回原文
+
+def send_wechat(content):
+    # 这里从 GitHub Secrets 获取你填写的 SERVER_CHAN_KEY
     send_key = os.environ.get('SERVER_CHAN_KEY')
-    print(f"DEBUG: 正在尝试使用的 Key 是: {send_key[:5]}******") # 仅打印前5位保护隐私
-    
+    if not send_key:
+        print("错误：未设置 SERVER_CHAN_KEY")
+        return
     url = f"https://sctapi.ftqq.com/{send_key}.send"
     data = {
-        "title": "📡 射频机器人通道测试",
-        "desp": content if content else "今日期刊无更新，这是一条通道测试消息。"
+        "title": "📡 射频期刊每日更新",
+        "desp": content
     }
-    
-    try:
-        response = requests.post(url, data=data)
-        print(f"DEBUG: Server酱返回结果: {response.text}")
-    except Exception as e:
-        print(f"DEBUG: 推送过程中发生网络错误: {e}")
+    requests.post(url, data=data)
 
 def main():
-    # 强制执行推送，不管有没有抓取到内容
-    test_content = "### 联通性测试成功！\n如果您看到这条消息，说明微信通道已彻底打通。"
-    send_wechat_debug(test_content)
+    combined_msg = ""
+    for url in RSS_FEEDS:
+        feed = feedparser.parse(url)
+        if feed.entries:
+            # 获取最新的一篇文章
+            entry = feed.entries[0]
+            title_cn = translate_text(entry.title)
+            combined_msg += f"### {feed.feed.get('title', '未知期刊')}\n"
+            combined_msg += f"- **标题**: {title_cn}\n"
+            combined_msg += f"- [查看原文]({entry.link})\n\n---\n"
+    
+    if combined_msg:
+        # ⚠️ 注意：这里调用的名字必须和上面定义的 def send_wechat 一致
+        send_wechat(combined_msg)
+    else:
+        print("未抓取到新内容")
 
 if __name__ == "__main__":
     main()
