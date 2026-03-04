@@ -1,7 +1,8 @@
+name: Daily Journal Push
 on:
   schedule:
-    - cron: '30 23 * * *'  # 对应北京时间 07:30
-  workflow_dispatch:
+    - cron: '30 23 * * *' # 北京时间早上 7:30 运行
+  workflow_dispatch:      # 允许手动触发
 
 jobs:
   push:
@@ -13,8 +14,9 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install feedparser googletrans==4.0.0-rc1 requests
       - name: Run Script
+        # 👇 关键点：必须在这里把 Secret 映射到环境变量中
         env:
-          PUSHDEER_KEY: ${{ secrets.PUSHDEER_KEY }}
+          SERVER_CHAN_KEY: ${{ secrets.SERVER_CHAN_KEY }}
         run: python main.py
