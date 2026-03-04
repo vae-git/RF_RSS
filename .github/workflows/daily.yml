@@ -1,8 +1,7 @@
-name: Daily Journal Push
 on:
   schedule:
-    - cron: '0 1 * * *'
-  workflow_dispatch:      # 必须有这一行，且缩进与 schedule 对齐
+    - cron: '30 23 * * *'  # 对应北京时间 07:30
+  workflow_dispatch:
 
 jobs:
   push:
